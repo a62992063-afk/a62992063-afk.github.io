@@ -1,0 +1,29 @@
+name: Inspect root publication lock
+on:
+  push:
+    branches: [repair-root-publication]
+permissions:
+  contents: read
+  pages: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Inspect the completed initial deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/a62992063-afk/a62992063-afk.github.io/pages/deployments/b1e2540de7b4ffe23e82fe140f3839f32e88f778 > /tmp/page-deployment.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/page-deployment.json'))
+          print('PAGES_DEPLOYMENT_STATUS',d.get('status'))
+          print('PAGES_DEPLOYMENT_ERROR',d.get('error'))
+          PY
+          state="$(python -c "import json;print(json.load(open('/tmp/page-deployment.json')).get('status',''))")"
+          case "$state" in
+            deployment_in_progress|queued|building|waiting)
+              gh api --method DELETE repos/a62992063-afk/a62992063-afk.github.io/pages/deployments/b1e2540de7b4ffe23e82fe140f3839f32e88f778
+              ;;
+          esac
