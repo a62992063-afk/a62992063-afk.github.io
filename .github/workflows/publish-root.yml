@@ -27,6 +27,11 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+      - name: Clear the initial deployment reported as blocking publication
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST repos/a62992063-afk/a62992063-afk.github.io/pages/deployments/b1e2540de7b4ffe23e82fe140f3839f32e88f778/cancel
       - name: Publish
         id: deployment
         uses: actions/deploy-pages@v4
