@@ -22,7 +22,7 @@ jobs:
       - name: Prepare static publication
         run: |
           mkdir _site
-          cp index.html robots.txt sitemap.xml naverbc2e135e1e34c515e6dfe4e8d536a20f.html _site/
+          cp index.html robots.txt sitemap.xml naver*.html _site/
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -33,12 +33,21 @@ jobs:
         uses: actions/deploy-pages@v4
         with:
           artifact_name: root-pages-${{ github.run_id }}-${{ github.run_attempt }}
-      - name: Verify public ownership file
+      - name: Verify public ownership files
         run: |
-          curl --fail --silent --show-error --retry 10 --retry-delay 5 --retry-all-errors https://a62992063-afk.github.io/naverbc2e135e1e34c515e6dfe4e8d536a20f.html -o /tmp/verification.html
           python - <<'PY'
           from pathlib import Path
-          text=Path('/tmp/verification.html').read_text().strip()
-          assert text=='naver-site-verification: naverbc2e135e1e34c515e6dfe4e8d536a20f.html',text
-          print('NAVER_PUBLIC_FILE_VERIFIED')
+          import urllib.request,time
+          for file in sorted(Path('.').glob('naver*.html')):
+              expected=file.read_text().strip()
+              for attempt in range(10):
+                  try:
+                      with urllib.request.urlopen('https://a62992063-afk.github.io/'+file.name,timeout=20) as response:
+                          actual=response.read().decode().strip()
+                      assert actual==expected
+                      break
+                  except Exception:
+                      if attempt==9:raise
+                      time.sleep(3)
+              print('NAVER_PUBLIC_FILE_VERIFIED',file.name)
           PY
